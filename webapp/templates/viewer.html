@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adobe Hackathon - PDF Analysis Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://documentservices.adobe.com/view-sdk/viewer.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+    <div class="viewer-container">
+        <!-- PDF Viewer Section -->
+        <div class="pdf-viewer">
+            <div 
+                id="adobe-dc-view" 
+                data-pdf-url="{{ pdf_url }}"
+                data-file-name="{{ pdf_url.split('/')[-1] }}"
+                style="width: 100%; height: 100vh;">
+            </div>
+            
+            <!-- Viewer Controls -->
+            <div class="viewer-controls">
+                <div class="control-group">
+                    <button class="control-btn" id="zoom-in" title="Zoom In">🔍+</button>
+                    <button class="control-btn" id="zoom-out" title="Zoom Out">🔍-</button>
+                    <button class="control-btn" id="fit-width" title="Fit Width">↔️</button>
+                    <button class="control-btn" id="toggle-insights" title="Toggle Insights">📊</button>
+                    <button class="control-btn" id="download-insights" title="Download Insights">💾</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights Panel -->
+        <div class="insights-panel">
+            <div class="insights-header">
+                <h2 class="insights-title">AI Analysis Results</h2>
+                <p class="insights-subtitle">Intelligent insights extracted from your document</p>
+                
+                <!-- Search Bar -->
+                <div class="insights-search" style="margin-top: 1rem;">
+                    <input 
+                        type="text" 
+                        placeholder="Search insights..." 
+                        class="search-input"
+                        id="insights-search"
+                        style="width: 100%; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; background: rgba(255,255,255,0.1); color: white; font-size: 0.9rem;"
+                    >
+                </div>
+            </div>
+
+            <div class="insights-content">
+                {% if insights %}
+                    {% if insights is mapping %}
+                        {% for key, value in insights.items() %}
+                        <div class="insight-item">
+                            <div class="insight-header">
+                                <h3 class="insight-title">{{ key.replace('_', ' ').title() }}</h3>
+                                <div class="insight-actions">
+                                    <button class="insight-btn copy-btn" onclick="copyInsight(this)" title="Copy to clipboard">📋</button>
+                                    <button class="insight-btn expand-btn" onclick="toggleExpand(this)" title="Expand/Collapse">▼</button>
+                                </div>
+                            </div>
+                            <div class="insight-content-text">
+                                {% if value is string %}
+                                    <p class="insight-text">{{ value }}</p>
+                                {% elif value is iterable %}
+                                    {% for item in value %}
+                                        <p class="insight-text">• {{ item }}</p>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="insight-text">{{ value }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% elif insights is iterable %}
+                        {% for insight in insights %}
+                        <div class="insight-item">
+                            <div class="insight-header">
+                                <h3 class="insight-title">
+                                    {% if insight.title %}
+                                        {{ insight.title }}
+                                    {% elif insight.section %}
+                                        {{ insight.section }}
+                                    {% else %}
+                                        Insight {{ loop.index }}
+                                    {% endif %}
+                                </h3>
+                                <div class="insight-actions">
+                                    <button class="insight-btn copy-btn" onclick="copyInsight(this)" title="Copy to clipboard">📋</button>
+                                    <button class="insight-btn expand-btn" onclick="toggleExpand(this)" title="Expand/Collapse">▼</button>
+                                </div>
+                            </div>
+                            <div class="insight-content-text">
+                                {% if insight.content %}
+                                    <p class="insight-text">{{ insight.content }}</p>
+                                {% elif insight.text %}
+                                    <p class="insight-text">{{ insight.text }}</p>
+                                {% elif insight.description %}
+                                    <p class="insight-text">{{ insight.description }}</p>
+                                {% else %}
+                                    <p class="insight-text">{{ insight }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="insight-item">
+                            <div class="insight-header">
+                                <h3 class="insight-title">Analysis Results</h3>
+                            </div>
+                            <div class="insight-content-text">
+                                <p class="insight-text">{{ insights }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="insight-item">
+                        <div class="insight-header">
+                            <h3 class="insight-title">No Insights Available</h3>
+                        </div>
+                        <div class="insight-content-text">
+                            <p class="insight-text">Unable to extract insights from the document. Please try again with a different PDF.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="insights-actions" style="padding: 1.5rem; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <button class="btn btn-primary" onclick="downloadInsights()" style="width: 100%; margin-bottom: 0.75rem;">
+                    💾 Download Insights
+                </button>
+                <button class="btn" onclick="window.location.href='/'" style="width: 100%; background: transparent; border: 2px solid var(--accent-color); color: var(--accent-color);">
+                    🔄 Analyze Another PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden data for JavaScript -->
+    <script>
+        window.insightsData = {{ insights | tojson }};
+        
+        // Adobe PDF Viewer initialization
+        document.addEventListener("adobe_dc_view_sdk.ready", function() {
+            var adobeDCView = new AdobeDC.View({
+                clientId: "2bad0879408e42e187391f114226cb41", // Replace with your actual Adobe client ID
+                divId: "adobe-dc-view"
+            });
+            
+            adobeDCView.previewFile({
+                content: { location: { url: "{{ pdf_url }}" } },
+                metaData: { fileName: "{{ pdf_url.split('/')[-1] }}" }
+            }, {
+                embedMode: "SIZED_CONTAINER",
+                showAnnotationTools: true,
+                showLeftHandPanel: false,
+                showDownloadPDF: false,
+                enableFormFilling: false,
+                showPrintPDF: true
+            });
+        });
+
+        // Utility functions for insights
+        function copyInsight(button) {
+            const insightItem = button.closest('.insight-item');
+            const title = insightItem.querySelector('.insight-title').textContent;
+            const text = insightItem.querySelector('.insight-text').textContent;
+            const content = `${title}\n\n${text}`;
+            
+            navigator.clipboard.writeText(content).then(() => {
+                button.textContent = '✅';
+                setTimeout(() => button.textContent = '📋', 2000);
+            }).catch(() => {
+                console.error('Failed to copy to clipboard');
+            });
+        }
+
+        function toggleExpand(button) {
+            const insightItem = button.closest('.insight-item');
+            const isExpanded = insightItem.classList.contains('expanded');
+            
+            if (isExpanded) {
+                insightItem.classList.remove('expanded');
+                button.textContent = '▼';
+                insightItem.querySelector('.insight-content-text').style.maxHeight = '100px';
+            } else {
+                insightItem.classList.add('expanded');
+                button.textContent = '▲';
+                insightItem.querySelector('.insight-content-text').style.maxHeight = 'none';
+            }
+        }
+
+        function downloadInsights() {
+            const insights = window.insightsData;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(insights, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "pdf_insights.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        // Search functionality
+        document.getElementById('insights-search').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const insights = document.querySelectorAll('.insight-item');
+            
+            insights.forEach(insight => {
+                const title = insight.querySelector('.insight-title').textContent.toLowerCase();
+                const text = insight.querySelector('.insight-text').textContent.toLowerCase();
+                
+                if (title.includes(searchTerm) || text.includes(searchTerm)) {
+                    insight.style.display = 'block';
+                } else {
+                    insight.style.display = 'none';
+                }
+            });
+        });
+    </script>
+
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

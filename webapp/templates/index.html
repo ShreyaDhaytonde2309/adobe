@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adobe Hackathon - Intelligent PDF Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+</head>
+<body>
+    <div class="animated-bg"></div>
+    
+    <div class="container">
+        <section class="hero-section">
+            <h1 class="hero-title">Intelligent PDF Analyzer</h1>
+            <p class="hero-subtitle">
+                Powered by Adobe's cutting-edge technology, extract meaningful insights from your documents with AI precision
+            </p>
+        </section>
+
+        <div class="upload-card">
+            <form id="upload-form" class="upload-form" action="/analyze" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">📄 Select PDF Document</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="pdf-file" name="pdf" class="file-upload-input" accept=".pdf" required>
+                        <div class="file-upload-content">
+                            <span class="file-upload-icon">📁</span>
+                            <div class="file-upload-text">Drop your PDF here or click to browse</div>
+                            <div class="file-upload-hint">Supports PDF files up to 50MB</div>
+                        </div>
+                        <div class="file-selected"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="persona-input" class="form-label">👤 Persona (Optional)</label>
+                    <input 
+                        type="text" 
+                        id="persona-input" 
+                        name="persona" 
+                        class="form-input" 
+                        placeholder="e.g., Marketing Manager, Software Developer, Student..."
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="job-input" class="form-label">🎯 Job-to-be-Done (Optional)</label>
+                    <input 
+                        type="text" 
+                        id="job-input" 
+                        name="job" 
+                        class="form-input" 
+                        placeholder="e.g., Extract key insights, Find action items, Summarize findings..."
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <span>🚀</span>
+                    Analyze PDF with AI
+                </button>
+
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>Processing your document...</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
